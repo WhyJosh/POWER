@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Progress">
+<meta name="theme-color" content="#0A0A0F">
+<title>Progress</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0A0A0F;--bg2:#13131A;--bg3:#1C1C26;--bg4:#252533;--bg5:#2E2E40;
+  --text:#F0EFE8;--text2:#9B9AAF;--text3:#6B6A7E;
+  --accent:#7C6FE0;--accent2:#A394F0;--accent-bg:rgba(124,111,224,0.13);
+  --gold:#C9973C;--gold2:#E0B55A;--gold-bg:rgba(201,151,60,0.13);
+  --green:#3DA86E;--green2:#5EC98A;--green-bg:rgba(61,168,110,0.12);
+  --red:#C95A5A;--red-bg:rgba(201,90,90,0.12);
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --r:14px;--r2:10px;--r3:22px;
+  --safe-top:env(safe-area-inset-top,44px);
+  --safe-bottom:env(safe-area-inset-bottom,20px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;color:var(--text);font-size:15px;line-height:1.5}
+
+/* APP SHELL */
+#app{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  max-width:430px;margin:0 auto;
+}
+
+/* SCREENS */
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden;position:absolute;inset:0;bottom:calc(66px + var(--safe-bottom))}
+.screen.active{display:flex}
+
+/* SCROLL AREA */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 16px 24px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* TOP BAR */
+.topbar{padding:calc(var(--safe-top) + 8px) 18px 12px;flex-shrink:0}
+.topbar-row{display:flex;align-items:center;justify-content:space-between}
+.page-title{font-size:30px;font-weight:700;letter-spacing:-0.8px;color:var(--text)}
+.page-sub{font-size:13px;color:var(--text3);margin-top:1px}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;font-weight:300;flex-shrink:0}
+
+/* BOTTOM NAV */
+#nav{
+  position:fixed;bottom:0;left:0;right:0;
+  max-width:430px;margin:0 auto;
+  height:calc(66px + var(--safe-bottom));
+  padding-bottom:var(--safe-bottom);
+  background:rgba(13,13,20,0.92);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:0.5px solid var(--border2);
+  display:flex;align-items:flex-start;padding-top:8px;
+  z-index:50;
+}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--text3);padding:0;transition:color 0.15s}
+.nav-item.active{color:var(--accent2)}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.nav-label{font-size:9.5px;font-weight:500;letter-spacing:0.2px}
+
+/* CARDS */
+.card{background:var(--bg3);border-radius:var(--r);padding:16px;border:0.5px solid var(--border)}
+.card+.card,.card+.goal-item,.prayer-item+.prayer-item,.note-item+.note-item{margin-top:10px}
+
+/* SECTION LABELS */
+.sec{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px;margin:20px 0 10px}
+
+/* PILLS */
+.pill{display:inline-flex;align-items:center;padding:5px 13px;border-radius:100px;font-size:12px;font-weight:600;border:none;cursor:pointer;white-space:nowrap}
+.pill-a{background:var(--accent-bg);color:var(--accent2)}
+.pill-n{background:var(--bg4);color:var(--text2)}
+.pill-gold{background:var(--gold-bg);color:var(--gold2)}
+.pill-green{background:var(--green-bg);color:var(--green2)}
+.pill-red{background:var(--red-bg);color:var(--red)}
+
+/* PROGRESS BAR */
+.prog{height:5px;background:var(--bg5);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(76px + var(--safe-bottom));right:18px;width:50px;height:50px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:49;box-shadow:0 4px 24px rgba(124,111,224,0.45);font-weight:300;line-height:1}
+.fab:active{transform:scale(0.94)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);display:none;flex-direction:column;justify-content:flex-end;z-index:200;max-width:430px;margin:0 auto}
+.modal-overlay.open{display:flex}
+.sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:0 18px calc(24px + var(--safe-bottom));max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border-top:0.5px solid var(--border2)}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:12px auto 20px}
+.sheet-title{font-size:21px;font-weight:700;letter-spacing:-0.4px;margin-bottom:16px}
+.sheet-close{float:right;width:30px;height:30px;border-radius:50%;background:var(--bg4);border:none;color:var(--text2);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;margin-top:-4px}
+
+/* FORM ELEMENTS */
+.field{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r2);padding:13px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;margin-bottom:12px;-webkit-appearance:none;appearance:none}
+.field:focus{border-color:var(--accent)}
+textarea.field{resize:none;line-height:1.5}
+select.field{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B6A7E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.field-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.submit-btn{width:100%;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:13px;font-size:16px;font-weight:600;cursor:pointer;margin-top:8px;font-family:inherit}
+.submit-btn:active{opacity:0.85}
+.danger-btn{background:var(--red-bg);color:var(--red);border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+
+/* EMPTY STATES */
+.empty{text-align:center;padding:48px 24px;color:var(--text3)}
+.empty-icon{font-size:40px;margin-bottom:14px;opacity:0.6}
+.empty-title{font-size:16px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.empty-sub{font-size:14px;line-height:1.5}
+
+/* HOME SCREEN */
+.greeting{font-size:28px;font-weight:700;letter-spacing:-0.6px;margin-bottom:2px}
+.greeting-date{font-size:13px;color:var(--text3)}
+.verse-banner{background:var(--bg3);border-radius:var(--r);padding:18px;border:0.5px solid var(--border);margin-bottom:10px}
+.verse-banner-label{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--accent2);font-weight:700;margin-bottom:8px}
+.verse-banner-text{font-size:16px;line-height:1.6;font-style:italic;color:var(--text)}
+.verse-banner-ref{font-size:12px;color:var(--gold2);font-weight:600;margin-top:8px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+.stat-card{background:var(--bg3);border-radius:var(--r2);padding:14px;border:0.5px solid var(--border)}
+.stat-n{font-size:28px;font-weight:700;letter-spacing:-0.5px}
+.stat-l{font-size:11px;color:var(--text3);margin-top:2px}
+.streak-bar{display:flex;gap:5px;margin-top:8px}
+.s-dot{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:1}
+.s-done{background:var(--accent);color:#fff}
+.s-today{background:var(--accent-bg);color:var(--accent2);border:1px solid var(--accent)}
+.s-miss{background:var(--bg4);color:var(--text3)}
+.activity-item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:0.5px solid var(--border)}
+.activity-item:last-child{border:none}
+.act-dot{width:34px;height:34px;border-radius:50%;background:var(--bg4);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.act-title{font-size:14px;font-weight:500}
+.act-sub{font-size:12px;color:var(--text3);margin-top:1px}
+
+/* VIDEO / CHECKIN */
+.record-hero{background:var(--bg3);border-radius:var(--r);padding:28px 20px;text-align:center;border:0.5px solid var(--border);margin-bottom:14px}
+.record-ring{width:74px;height:74px;border-radius:50%;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.record-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.record-sub{font-size:14px;color:var(--text2);line-height:1.5}
+.record-btn{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:14px 28px;background:var(--accent);color:#fff;border:none;border-radius:13px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.record-btn:active{opacity:0.85}
+.lookback-pills{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.lookback-pills::-webkit-scrollbar{display:none}
+.video-entry{background:var(--bg3);border-radius:var(--r);padding:16px;border:0.5px solid var(--border);margin-bottom:9px}
+.video-entry-date{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.video-entry-dur{font-size:12px;color:var(--text3)}
+.video-entry-mood{font-size:22px;margin-bottom:6px}
+.video-entry-preview{font-size:13px;color:var(--text2);line-height:1.45;margin-top:6px}
+.video-filter-btns{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
+.video-filter-btns::-webkit-scrollbar{display:none}
+
+/* MOOD */
+.mood-row{display:flex;gap:8px;margin-bottom:14px}
+.mood-btn{flex:1;padding:12px 4px;border-radius:10px;background:var(--bg3);border:0.5px solid var(--border);cursor:pointer;text-align:center;transition:border-color 0.15s}
+.mood-btn.sel{border-color:var(--accent);background:var(--accent-bg)}
+.mood-emoji{font-size:24px}
+.mood-lbl{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* BIBLE */
+.book-item{padding:13px 0;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.book-item:last-child{border:none}
+.book-name{font-size:15px;font-weight:500}
+.book-ch{font-size:12px;color:var(--text3)}
+.verse-item{padding:14px 0;border-bottom:0.5px solid var(--border)}
+.verse-item:last-child{border:none}
+.verse-ref{font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px}
+.verse-text{font-size:15px;line-height:1.65;color:var(--text)}
+.verse-actions{display:flex;gap:8px;margin-top:10px}
+.verse-act-btn{padding:5px 12px;border-radius:100px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:var(--bg4);color:var(--text2)}
+.verse-act-btn.active{background:var(--accent-bg);color:var(--accent2)}
+.plan-card{background:var(--bg3);border-radius:var(--r);padding:16px;border:0.5px solid var(--border);margin-bottom:10px}
+
+/* NOTES */
+.note-item{background:var(--bg3);border-radius:var(--r);padding:16px;border:0.5px solid var(--border);cursor:pointer;position:relative}
+.note-cat-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px}
+.note-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.note-preview{font-size:13px;color:var(--text2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.note-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.note-date{font-size:11px;color:var(--text3)}
+.pin-icon{font-size:14px}
+.cat-pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:12px}
+.cat-pills::-webkit-scrollbar{display:none}
+
+/* NOTE EDITOR */
+.note-editor-title{width:100%;background:transparent;border:none;outline:none;font-size:22px;font-weight:700;color:var(--text);font-family:inherit;padding:0;margin-bottom:12px}
+.note-editor-body{width:100%;background:transparent;border:none;outline:none;font-size:15px;color:var(--text);font-family:inherit;line-height:1.7;resize:none;min-height:300px;padding:0}
+
+/* PRAYER */
+.prayer-item{background:var(--bg3);border-radius:var(--r);padding:16px;border:0.5px solid var(--border);cursor:pointer}
+.prayer-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.prayer-date{font-size:11px;color:var(--text3);margin-bottom:6px}
+.prayer-preview{font-size:13px;color:var(--text2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.prayer-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.prayer-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.p-stat{background:var(--bg3);border-radius:var(--r2);padding:12px;text-align:center;border:0.5px solid var(--border)}
+.p-stat-n{font-size:24px;font-weight:700}
+.p-stat-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-top:2px}
+
+/* GOALS */
+.goal-item{background:var(--bg3);border-radius:var(--r);padding:16px;border:0.5px solid var(--border);cursor:pointer}
+.goal-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.goal-emoji{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.goal-info{flex:1}
+.goal-title{font-size:15px;font-weight:600}
+.goal-cat{font-size:11px;color:var(--text3);margin-top:1px}
+.goal-pct{font-size:15px;font-weight:700;color:var(--accent2);flex-shrink:0}
+.goal-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.goal-dates{font-size:11px;color:var(--text3)}
+.goal-cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:12px}
+.goal-cats::-webkit-scrollbar{display:none}
+
+/* TIMELINE */
+.tl-group-date{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px;margin:18px 0 10px}
+.tl-item{display:flex;gap:12px;margin-bottom:14px}
+.tl-dot{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.tl-body{flex:1;padding-top:2px}
+.tl-type{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:var(--text3);margin-bottom:2px}
+.tl-title{font-size:14px;font-weight:600}
+.tl-time{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* REMINDERS */
+.remind-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:0.5px solid var(--border)}
+.remind-row:last-child{border:none}
+.remind-left{display:flex;align-items:center;gap:12px}
+.remind-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.remind-name{font-size:15px;font-weight:500}
+.remind-time-label{font-size:12px;color:var(--text3);margin-top:1px}
+.toggle{width:46px;height:27px;border-radius:14px;border:none;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle.off{background:var(--bg5)}
+.toggle::after{content:'';position:absolute;width:21px;height:21px;border-radius:50%;background:#fff;top:3px;transition:left 0.2s}
+.toggle.on::after{left:22px}
+.toggle.off::after{left:3px}
+
+/* TOAST */
+#toast{position:fixed;top:calc(var(--safe-top) + 56px);left:50%;transform:translateX(-50%) translateY(-20px);background:var(--bg3);color:var(--text);padding:11px 20px;border-radius:100px;font-size:14px;font-weight:500;border:0.5px solid var(--border2);z-index:300;opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* DETAIL VIEWS */
+.detail-view{position:fixed;inset:0;max-width:430px;margin:0 auto;background:var(--bg);z-index:100;display:none;flex-direction:column}
+.detail-view.open{display:flex}
+.detail-topbar{padding:calc(var(--safe-top) + 8px) 18px 12px;display:flex;align-items:center;gap:12px;flex-shrink:0;border-bottom:0.5px solid var(--border)}
+.back-btn{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.detail-title{font-size:17px;font-weight:600;flex:1}
+.detail-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 40px;scrollbar-width:none}
+.detail-scroll::-webkit-scrollbar{display:none}
+
+/* REFLECTION QUICK VIEW */
+.reflect-section{background:var(--bg3);border-radius:var(--r);padding:16px;border:0.5px solid var(--border);margin-bottom:10px}
+.reflect-q-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.reflect-q-answer{font-size:15px;line-height:1.55;color:var(--text)}
+
+/* DAILY VERSE CARDS */
+.daily-verses{position:relative}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- HOME -->
+  <div class="screen active" id="s-home">
+    <div class="topbar">
+      <div class="greeting" id="home-greeting">Good morning.</div>
+      <div class="greeting-date" id="home-date"></div>
+    </div>
+    <div class="scroll" id="home-scroll"></div>
+  </div>
+
+  <!-- CHECK-IN -->
+  <div class="screen" id="s-checkin">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div><div class="page-title">Check-In</div><div class="page-sub">Daily video journal</div></div>
+      </div>
+    </div>
+    <div class="scroll" id="checkin-scroll"></div>
+  </div>
+
+  <!-- BIBLE -->
+  <div class="screen" id="s-bible">
+    <div class="topbar">
+      <div class="page-title">Bible</div>
+      <div class="page-sub">King James Version</div>
+    </div>
+    <div class="scroll" id="bible-scroll"></div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="screen" id="s-notes">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div><div class="page-title">Notes</div><div class="page-sub" id="notes-sub">0 entries</div></div>
+        <button class="icon-btn" onclick="openNoteEditor(null)">+</button>
+      </div>
+    </div>
+    <div class="scroll" id="notes-scroll"></div>
+  </div>
+
+  <!-- PRAYER -->
+  <div class="screen" id="s-prayer">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div><div class="page-title">Prayer</div><div class="page-sub">Journal</div></div>
+        <button class="icon-btn" onclick="openSheet('prayer-sheet')">+</button>
+      </div>
+    </div>
+    <div class="scroll" id="prayer-scroll"></div>
+    <button class="fab" onclick="openSheet('prayer-sheet')">+</button>
+  </div>
+
+  <!-- GOALS -->
+  <div class="screen" id="s-goals">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div><div class="page-title">Goals</div><div class="page-sub" id="goals-sub">0 active</div></div>
+        <button class="icon-btn" onclick="openSheet('goal-sheet')">+</button>
+      </div>
+    </div>
+    <div class="scroll" id="goals-scroll"></div>
+    <button class="fab" onclick="openSheet('goal-sheet')">+</button>
+  </div>
+
+  <!-- MORE (Timeline + Reminders) -->
+  <div class="screen" id="s-more">
+    <div class="topbar">
+      <div class="page-title">More</div>
+    </div>
+    <div class="scroll" id="more-scroll"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav id="nav">
+    <button class="nav-item active" data-screen="home" onclick="switchScreen('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" data-screen="checkin" onclick="switchScreen('checkin')">
+      <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      <span class="nav-label">Check-In</span>
+    </button>
+    <button class="nav-item" data-screen="bible" onclick="switchScreen('bible')">
+      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      <span class="nav-label">Bible</span>
+    </button>
+    <button class="nav-item" data-screen="notes" onclick="switchScreen('notes')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span class="nav-label">Notes</span>
+    </button>
+    <button class="nav-item" data-screen="prayer" onclick="switchScreen('prayer')">
+      <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      <span class="nav-label">Prayer</span>
+    </button>
+    <button class="nav-item" data-screen="goals" onclick="switchScreen('goals')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      <span class="nav-label">Goals</span>
+    </button>
+    <button class="nav-item" data-screen="more" onclick="switchScreen('more')">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <span class="nav-label">More</span>
+    </button>
+  </nav>
+</div>
+
+<!-- DETAIL VIEWS -->
+<!-- Note Editor -->
+<div class="detail-view" id="note-editor-view">
+  <div class="detail-topbar">
+    <button class="back-btn" onclick="closeNoteEditor()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="detail-title" id="note-editor-mode">New note</span>
+    <div style="display:flex;gap:8px">
+      <button class="pill pill-n" id="note-pin-btn" onclick="toggleNotePin()" style="padding:5px 10px">📌</button>
+      <button class="pill pill-a" onclick="saveNoteEditor()">Save</button>
+    </div>
+  </div>
+  <div style="padding:12px 18px;border-bottom:0.5px solid var(--border);flex-shrink:0">
+    <div class="cat-pills" id="note-cat-editor-pills"></div>
+    <input id="note-editor-title" class="note-editor-title" placeholder="Title" maxlength="120">
+  </div>
+  <div class="detail-scroll">
+    <textarea id="note-editor-body" class="note-editor-body" placeholder="Start writing…"></textarea>
+  </div>
+  <div style="padding:8px 18px calc(14px + var(--safe-bottom));border-top:0.5px solid var(--border);display:flex;justify-content:flex-end;flex-shrink:0" id="note-editor-footer">
+    <button class="danger-btn" id="note-delete-btn" onclick="deleteCurrentNote()" style="display:none">Delete note</button>
+  </div>
+</div>
+
+<!-- Prayer Detail -->
+<div class="detail-view" id="prayer-detail-view">
+  <div class="detail-topbar">
+    <button class="back-btn" onclick="closePrayerDetail()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="detail-title" id="prayer-detail-title">Prayer</span>
+    <button class="danger-btn" onclick="deleteCurrentPrayer()">Delete</button>
+  </div>
+  <div class="detail-scroll" id="prayer-detail-content"></div>
+</div>
+
+<!-- Goal Detail -->
+<div class="detail-view" id="goal-detail-view">
+  <div class="detail-topbar">
+    <button class="back-btn" onclick="closeGoalDetail()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="detail-title" id="goal-detail-title">Goal</span>
+    <button class="pill pill-a" onclick="saveGoalDetailEdits()">Save</button>
+  </div>
+  <div class="detail-scroll" id="goal-detail-content"></div>
+</div>
+
+<!-- Check-In Reflection -->
+<div class="detail-view" id="checkin-detail-view">
+  <div class="detail-topbar">
+    <button class="back-btn" onclick="closeCheckinDetail()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="detail-title" id="checkin-detail-title">Check-In</span>
+    <button class="danger-btn" onclick="deleteCurrentCheckin()">Delete</button>
+  </div>
+  <div class="detail-scroll" id="checkin-detail-content"></div>
+</div>
+
+<!-- Bible Reader -->
+<div class="detail-view" id="bible-reader-view">
+  <div class="detail-topbar">
+    <button class="back-btn" onclick="closeBibleReader()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="detail-title" id="bible-reader-title">Genesis 1</span>
+    <select id="chapter-select" class="field" style="margin:0;padding:7px 30px 7px 10px;font-size:13px;width:auto;border-radius:8px" onchange="loadChapter(this.value)"></select>
+  </div>
+  <div style="padding:8px 18px;border-bottom:0.5px solid var(--border);flex-shrink:0;font-size:13px;color:var(--text3)" id="bible-reader-progress"></div>
+  <div class="detail-scroll" id="bible-reader-content"></div>
+</div>
+
+<!-- MODALS / SHEETS -->
+
+<!-- Check-In Sheet (Reflection form) -->
+<div class="modal-overlay" id="checkin-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeSheet('checkin-sheet')">✕</button>
+    <div class="sheet-title">Daily Check-In</div>
+    <div class="field-label">How do you feel today?</div>
+    <div class="mood-row" id="mood-row">
+      <button class="mood-btn" onclick="selectMood(this,'😔','Low')"><div class="mood-emoji">😔</div><div class="mood-lbl">Low</div></button>
+      <button class="mood-btn" onclick="selectMood(this,'😐','Neutral')"><div class="mood-emoji">😐</div><div class="mood-lbl">Neutral</div></button>
+      <button class="mood-btn" onclick="selectMood(this,'🙂','Good')"><div class="mood-emoji">🙂</div><div class="mood-lbl">Good</div></button>
+      <button class="mood-btn" onclick="selectMood(this,'😄','Great')"><div class="mood-emoji">😄</div><div class="mood-lbl">Great</div></button>
+    </div>
+    <div class="field-label">What am I grateful for?</div>
+    <textarea class="field" id="ci-grateful" placeholder="Today I'm grateful for…" rows="3"></textarea>
+    <div class="field-label">What is my biggest goal today?</div>
+    <textarea class="field" id="ci-goal" placeholder="Today I will…" rows="2"></textarea>
+    <div class="field-label">What challenged me yesterday?</div>
+    <textarea class="field" id="ci-challenge" placeholder="Yesterday I struggled with…" rows="2"></textarea>
+    <div class="field-label">What Bible verse stood out to me?</div>
+    <textarea class="field" id="ci-verse" placeholder="Verse or passage…" rows="2"></textarea>
+    <button class="submit-btn" onclick="saveCheckin()">Save Check-In</button>
+  </div>
+</div>
+
+<!-- Prayer Sheet -->
+<div class="modal-overlay" id="prayer-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeSheet('prayer-sheet')">✕</button>
+    <div class="sheet-title" id="prayer-sheet-title">New Prayer</div>
+    <input class="field" id="prayer-title-f" placeholder="Title">
+    <textarea class="field" id="prayer-body-f" placeholder="Your prayer…" rows="5"></textarea>
+    <div class="field-label">Status</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="pill pill-a" id="ps-active" onclick="setPrayerStatus('active')">Active</button>
+      <button class="pill pill-n" id="ps-waiting" onclick="setPrayerStatus('waiting')">Waiting</button>
+      <button class="pill pill-n" id="ps-answered" onclick="setPrayerStatus('answered')">Answered</button>
+    </div>
+    <button class="submit-btn" onclick="savePrayer()">Save Prayer</button>
+  </div>
+</div>
+
+<!-- Goal Sheet -->
+<div class="modal-overlay" id="goal-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeSheet('goal-sheet')">✕</button>
+    <div class="sheet-title">New Goal</div>
+    <div class="field-label">Category</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="goal-cat-pills">
+      <button class="pill pill-a" data-cat="Faith" onclick="setGoalCat(this)">🙏 Faith</button>
+      <button class="pill pill-n" data-cat="Health" onclick="setGoalCat(this)">💪 Health</button>
+      <button class="pill pill-n" data-cat="Fitness" onclick="setGoalCat(this)">⚡ Fitness</button>
+      <button class="pill pill-n" data-cat="Relationships" onclick="setGoalCat(this)">🤝 Relations</button>
+      <button class="pill pill-n" data-cat="Finances" onclick="setGoalCat(this)">💰 Finances</button>
+      <button class="pill pill-n" data-cat="Career" onclick="setGoalCat(this)">💼 Career</button>
+      <button class="pill pill-n" data-cat="Personal" onclick="setGoalCat(this)">🌱 Personal</button>
+    </div>
+    <input class="field" id="goal-title-f" placeholder="Goal title">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div><div class="field-label">Start date</div><input class="field" type="date" id="goal-start-f" style="margin:0"></div>
+      <div><div class="field-label">Target date</div><input class="field" type="date" id="goal-target-f" style="margin:0"></div>
+    </div>
+    <div class="field-label">Initial progress: <span id="goal-pct-disp">0%</span></div>
+    <input type="range" min="0" max="100" step="5" value="0" id="goal-pct-f" oninput="document.getElementById('goal-pct-disp').textContent=this.value+'%'" style="width:100%;margin-bottom:14px">
+    <textarea class="field" id="goal-notes-f" placeholder="Notes or first milestone…" rows="3"></textarea>
+    <button class="submit-btn" onclick="saveGoal()">Add Goal</button>
+  </div>
+</div>
+
+<!-- Reading Plan Sheet -->
+<div class="modal-overlay" id="plan-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeSheet('plan-sheet')">✕</button>
+    <div class="sheet-title">Reading Plans</div>
+    <div id="plan-list"></div>
+  </div>
+</div>
+
+<!-- Reminder time picker -->
+<div class="modal-overlay" id="remind-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeSheet('remind-sheet')">✕</button>
+    <div class="sheet-title" id="remind-sheet-title">Set Reminder</div>
+    <div class="field-label">Time</div>
+    <input class="field" type="time" id="remind-time-f">
+    <div class="field-label">Repeat</div>
+    <select class="field" id="remind-repeat-f">
+      <option value="daily">Every day</option>
+      <option value="weekdays">Weekdays</option>
+      <option value="weekends">Weekends</option>
+      <option value="mwf">Mon / Wed / Fri</option>
+      <option value="weekly">Once a week</option>
+    </select>
+    <button class="submit-btn" onclick="saveReminder()">Save Reminder</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA LAYER — all reads/writes go through DB
+// ============================================================
+const DB = {
+  get(key, def=null){ try{const v=localStorage.getItem('pg_'+key);return v!==null?JSON.parse(v):def}catch(e){return def} },
+  set(key,val){ try{localStorage.setItem('pg_'+key,JSON.stringify(val))}catch(e){} },
+  del(key){ localStorage.removeItem('pg_'+key) }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let currentScreen='home';
+let currentNoteId=null;
+let currentPrayerId=null;
+let currentGoalId=null;
+let currentCheckinId=null;
+let currentPrayerStatus='active';
+let currentGoalCat='Faith';
+let currentMoodEmoji='🙂';
+let currentMoodLabel='Good';
+let currentBibleBook=null;
+let currentEditingReminder=null;
+let noteCategory='Personal';
+let notePinned=false;
+let bibleFilter='all';
+let prayerFilter='active';
+let goalFilter='all';
+let noteFilter='all';
+let checkinFilter='all';
+
+// ============================================================
+// KJV BIBLE DATA (condensed — key books with real verses)
+// ============================================================
+const BIBLE = {
+  books:[
+    {name:"Genesis",testament:"OT",chapters:50},
+    {name:"Exodus",testament:"OT",chapters:40},
+    {name:"Leviticus",testament:"OT",chapters:27},
+    {name:"Numbers",testament:"OT",chapters:36},
+    {name:"Deuteronomy",testament:"OT",chapters:34},
+    {name:"Joshua",testament:"OT",chapters:24},
+    {name:"Judges",testament:"OT",chapters:21},
+    {name:"Ruth",testament:"OT",chapters:4},
+    {name:"1 Samuel",testament:"OT",chapters:31},
+    {name:"2 Samuel",testament:"OT",chapters:24},
+    {name:"1 Kings",testament:"OT",chapters:22},
+    {name:"2 Kings",testament:"OT",chapters:25},
+    {name:"1 Chronicles",testament:"OT",chapters:29},
+    {name:"2 Chronicles",testament:"OT",chapters:36},
+    {name:"Ezra",testament:"OT",chapters:10},
+    {name:"Nehemiah",testament:"OT",chapters:13},
+    {name:"Esther",testament:"OT",chapters:10},
+    {name:"Job",testament:"OT",chapters:42},
+    {name:"Psalms",testament:"OT",chapters:150},
+    {name:"Proverbs",testament:"OT",chapters:31},
+    {name:"Ecclesiastes",testament:"OT",chapters:12},
+    {name:"Song of Solomon",testament:"OT",chapters:8},
+    {name:"Isaiah",testament:"OT",chapters:66},
+    {name:"Jeremiah",testament:"OT",chapters:52},
+    {name:"Lamentations",testament:"OT",chapters:5},
+    {name:"Ezekiel",testament:"OT",chapters:48},
+    {name:"Daniel",testament:"OT",chapters:12},
+    {name:"Hosea",testament:"OT",chapters:14},
+    {name:"Joel",testament:"OT",chapters:3},
+    {name:"Amos",testament:"OT",chapters:9},
+    {name:"Obadiah",testament:"OT",chapters:1},
+    {name:"Jonah",testament:"OT",chapters:4},
+    {name:"Micah",testament:"OT",chapters:7},
+    {name:"Nahum",testament:"OT",chapters:3},
+    {name:"Habakkuk",testament:"OT",chapters:3},
+    {name:"Zephaniah",testament:"OT",chapters:3},
+    {name:"Haggai",testament:"OT",chapters:2},
+    {name:"Zechariah",testament:"OT",chapters:14},
+    {name:"Malachi",testament:"OT",chapters:4},
+    {name:"Matthew",testament:"NT",chapters:28},
+    {name:"Mark",testament:"NT",chapters:16},
+    {name:"Luke",testament:"NT",chapters:24},
+    {name:"John",testament:"NT",chapters:21},
+    {name:"Acts",testament:"NT",chapters:28},
+    {name:"Romans",testament:"NT",chapters:16},
+    {name:"1 Corinthians",testament:"NT",chapters:16},
+    {name:"2 Corinthians",testament:"NT",chapters:13},
+    {name:"Galatians",testament:"NT",chapters:6},
+    {name:"Ephesians",testament:"NT",chapters:6},
+    {name:"Philippians",testament:"NT",chapters:4},
+    {name:"Colossians",testament:"NT",chapters:4},
+    {name:"1 Thessalonians",testament:"NT",chapters:5},
+    {name:"2 Thessalonians",testament:"NT",chapters:3},
+    {name:"1 Timothy",testament:"NT",chapters:6},
+    {name:"2 Timothy",testament:"NT",chapters:4},
+    {name:"Titus",testament:"NT",chapters:3},
+    {name:"Philemon",testament:"NT",chapters:1},
+    {name:"Hebrews",testament:"NT",chapters:13},
+    {name:"James",testament:"NT",chapters:5},
+    {name:"1 Peter",testament:"NT",chapters:5},
+    {name:"2 Peter",testament:"NT",chapters:3},
+    {name:"1 John",testament:"NT",chapters:5},
+    {name:"2 John",testament:"NT",chapters:1},
+    {name:"3 John",testament:"NT",chapters:1},
+    {name:"Jude",testament:"NT",chapters:1},
+    {name:"Revelation",testament:"NT",chapters:22}
+  ],
+  // Chapters with real KJV verses for key books
+  chapters:{
+    "Psalms:23":["The Lord is my shepherd; I shall not want.","He maketh me to lie down in green pastures: he leadeth me beside the still waters.","He restoreth my soul: he leadeth me in the paths of righteousness for his name's sake.","Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.","Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over.","Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the Lord for ever."],
+    "Psalms:91":["He that dwelleth in the secret place of the most High shall abide under the shadow of the Almighty.","I will say of the Lord, He is my refuge and my fortress: my God; in him will I trust.","Surely he shall deliver thee from the snare of the fowler, and from the noisome pestilence.","He shall cover thee with his feathers, and under his wings shalt thou trust: his truth shall be thy shield and buckler.","Thou shalt not be afraid for the terror by night; nor for the arrow that flieth by day;","Nor for the pestilence that walketh in darkness; nor for the destruction that wasteth at noonday.","A thousand shall fall at thy side, and ten thousand at thy right hand; but it shall not come nigh thee.","Because he hath set his love upon me, therefore will I deliver him: I will set him on high, because he hath known my name.","He shall call upon me, and I will answer him: I will be with him in trouble; I will deliver him, and honour him.","With long life will I satisfy him, and shew him my salvation."],
+    "Proverbs:3":["My son, forget not my law; but let thine heart keep my commandments:","For length of days, and long life, and peace, shall they add to thee.","Let not mercy and truth forsake thee: bind them about thy neck; write them upon the table of thine heart:","So shalt thou find favour and good understanding in the sight of God and man.","Trust in the Lord with all thine heart; and lean not unto thine own understanding.","In all thy ways acknowledge him, and he shall direct thy paths.","Be not wise in thine own eyes: fear the Lord, and depart from evil.","It shall be health to thy navel, and marrow to thy bones.","Honour the Lord with thy substance, and with the firstfruits of all thine increase:","So shall thy barns be filled with plenty, and thy presses shall burst out with new wine."],
+    "John:3":["There was a man of the Pharisees, named Nicodemus, a ruler of the Jews:","The same came to Jesus by night, and said unto him, Rabbi, we know that thou art a teacher come from God: for no man can do these miracles that thou doest, except God be with him.","Jesus answered and said unto him, Verily, verily, I say unto thee, Except a man be born again, he cannot see the kingdom of God.","Nicodemus saith unto him, How can a man be born when he is old? can he enter the second time into his mother's womb, and be born?","Jesus answered, Verily, verily, I say unto thee, Except a man be born of water and of the Spirit, he cannot enter into the kingdom of God.","That which is born of the flesh is flesh; and that which is born of the Spirit is spirit.","Marvel not that I said unto thee, Ye must be born again.","The wind bloweth where it listeth, and thou hearest the sound thereof, but canst not tell whence it cometh, and whither it goeth: so is every one that is born of the Spirit.","For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.","For God sent not his Son into the world to condemn the world; but that the world through him might be saved."],
+    "Romans:8":["There is therefore now no condemnation to them which are in Christ Jesus, who walk not after the flesh, but after the Spirit.","For the law of the Spirit of life in Christ Jesus hath made me free from the law of sin and death.","For they that are after the flesh do mind the things of the flesh; but they that are after the Spirit the things of the Spirit.","For to be carnally minded is death; but to be spiritually minded is life and peace.","And we know that all things work together for good to them that love God, to them who are the called according to his purpose.","What shall we then say to these things? If God be for us, who can be against us?","He that spared not his own Son, but delivered him up for us all, how shall he not with him also freely give us all things?","Who shall separate us from the love of Christ? shall tribulation, or distress, or persecution, or famine, or nakedness, or peril, or sword?","Nay, in all these things we are more than conquerors through him that loved us.","For I am persuaded, that neither death, nor life, nor angels, nor principalities, nor powers, nor things present, nor things to come, Nor height, nor depth, nor any other creature, shall be able to separate us from the love of God, which is in Christ Jesus our Lord."],
+    "Philippians:4":["I can do all things through Christ which strengtheneth me.","But my God shall supply all your need according to his riches in glory by Christ Jesus.","Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.","And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus.","Finally, brethren, whatsoever things are true, whatsoever things are honest, whatsoever things are just, whatsoever things are pure, whatsoever things are lovely, whatsoever things are of good report; if there be any virtue, and if there be any praise, think on these things.","Rejoice in the Lord alway: and again I say, Rejoice.","Let your moderation be known unto all men. The Lord is at hand."],
+    "Genesis:1":["In the beginning God created the heaven and the earth.","And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.","And God said, Let there be light: and there was light.","And God saw the light, that it was good: and God divided the light from the darkness.","And God called the light Day, and the darkness he called Night. And the evening and the morning were the first day.","And God said, Let there be a firmament in the midst of the waters, and let it divide the waters from the waters.","And God made the firmament, and divided the waters which were under the firmament from the waters which were above the firmament: and it was so.","And God called the firmament Heaven. And the evening and the morning were the second day.","And God said, Let the waters under the heaven be gathered together unto one place, and let the dry land appear: and it was so.","And God called the dry land Earth; and the gathering together of the waters called he Seas: and God saw that it was good.","And God said, Let the earth bring forth grass, the herb yielding seed, and the fruit tree yielding fruit after his kind, whose seed is in itself, upon the earth: and it was so.","And God saw every thing that he had made, and, behold, it was very good. And the evening and the morning were the sixth day."],
+    "Matthew:5":["And seeing the multitudes, he went up into a mountain: and when he was set, his disciples came unto him:","And he opened his mouth, and taught them, saying,","Blessed are the poor in spirit: for theirs is the kingdom of heaven.","Blessed are they that mourn: for they shall be comforted.","Blessed are the meek: for they shall inherit the earth.","Blessed are they which do hunger and thirst after righteousness: for they shall be filled.","Blessed are the merciful: for they shall obtain mercy.","Blessed are the pure in heart: for they shall see God.","Blessed are the peacemakers: for they shall be called the children of God.","Blessed are they which are persecuted for righteousness' sake: for theirs is the kingdom of heaven.","Blessed are ye, when men shall revile you, and persecute you, and shall say all manner of evil against you falsely, for my sake.","Rejoice, and be exceeding glad: for great is your reward in heaven: for so persecuted they the prophets which were before you.","Ye are the light of the world. A city that is set on an hill cannot be hid.","Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven."],
+    "Isaiah:40":["Hast thou not known? hast thou not heard, that the everlasting God, the Lord, the Creator of the ends of the earth, fainteth not, neither is weary? there is no searching of his understanding.","He giveth power to the faint; and to them that have no might he increaseth strength.","Even the youths shall faint and be weary, and the young men shall utterly fall:","But they that wait upon the Lord shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint."],
+    "Jeremiah:29":["For I know the thoughts that I think toward you, saith the Lord, thoughts of peace, and not of evil, to give you an expected end.","Then shall ye call upon me, and ye shall go and pray unto me, and I will hearken unto you.","And ye shall seek me, and find me, when ye shall search for me with all your heart."],
+    "James:1":["My brethren, count it all joy when ye fall into divers temptations;","Knowing this, that the trying of your faith worketh patience.","But let patience have her perfect work, that ye may be perfect and entire, wanting nothing.","If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not; and it shall be given him.","But let him ask in faith, nothing wavering. For he that wavereth is like a wave of the sea driven with the wind and tossed.","Every good gift and every perfect gift is from above, and cometh down from the Father of lights, with whom is no variableness, neither shadow of turning."]
+  }
+};
+
+const DAILY_VERSES=[
+  {text:"I can do all things through Christ which strengtheneth me.",ref:"Philippians 4:13"},
+  {text:"The Lord is my shepherd; I shall not want.",ref:"Psalms 23:1"},
+  {text:"Trust in the Lord with all thine heart; and lean not unto thine own understanding.",ref:"Proverbs 3:5"},
+  {text:"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",ref:"John 3:16"},
+  {text:"But they that wait upon the Lord shall renew their strength; they shall mount up with wings as eagles.",ref:"Isaiah 40:31"},
+  {text:"For I know the thoughts that I think toward you, saith the Lord, thoughts of peace, and not of evil, to give you an expected end.",ref:"Jeremiah 29:11"},
+  {text:"There is therefore now no condemnation to them which are in Christ Jesus, who walk not after the flesh, but after the Spirit.",ref:"Romans 8:1"},
+  {text:"Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.",ref:"Philippians 4:6"},
+  {text:"And we know that all things work together for good to them that love God.",ref:"Romans 8:28"},
+  {text:"If any of you lack wisdom, let him ask of God, that giveth to all men liberally.",ref:"James 1:5"},
+  {text:"What shall we then say to these things? If God be for us, who can be against us?",ref:"Romans 8:31"},
+  {text:"Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven.",ref:"Matthew 5:16"},
+  {text:"Blessed are the pure in heart: for they shall see God.",ref:"Matthew 5:8"},
+  {text:"He giveth power to the faint; and to them that have no might he increaseth strength.",ref:"Isaiah 40:29"}
+];
+
+const NOTE_CATS=[
+  {id:'Bible Study',color:'#A394F0',emoji:'📖'},
+  {id:'Prayer',color:'#5EC98A',emoji:'🙏'},
+  {id:'Sermon',color:'#E0B55A',emoji:'✝️'},
+  {id:'Personal',color:'#9B9AAF',emoji:'📓'},
+  {id:'Business Ideas',color:'#6BB8E2',emoji:'💡'},
+  {id:'Goals',color:'#E07070',emoji:'🎯'}
+];
+
+const CAT_EMOJIS={Faith:'🙏',Health:'💪',Fitness:'⚡',Relationships:'🤝',Finances:'💰',Career:'💼',Personal:'🌱'};
+
+const REMINDERS_DEFAULT=[
+  {id:'prayer',name:'Prayer',emoji:'🙏',bg:'rgba(124,111,224,0.15)',time:'06:00',repeat:'daily',on:true},
+  {id:'bible',name:'Bible Reading',emoji:'📖',bg:'rgba(201,151,60,0.15)',time:'07:30',repeat:'daily',on:true},
+  {id:'exercise',name:'Exercise',emoji:'⚡',bg:'rgba(61,168,110,0.15)',time:'06:00',repeat:'mwf',on:false},
+  {id:'water',name:'Water Intake',emoji:'💧',bg:'rgba(56,150,230,0.15)',time:'08:00',repeat:'daily',on:false},
+  {id:'checkin',name:'Daily Check-In',emoji:'🎬',bg:'rgba(226,107,107,0.15)',time:'08:00',repeat:'daily',on:true},
+  {id:'custom',name:'Custom Task',emoji:'⭐',bg:'rgba(255,255,255,0.06)',time:'09:00',repeat:'daily',on:false}
+];
+
+// ============================================================
+// HELPERS
+// ============================================================
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2) }
+function fmtDate(ts){
+  const d=new Date(ts);
+  return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+}
+function fmtDateShort(ts){
+  const d=new Date(ts);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function fmtTime(ts){
+  const d=new Date(ts);
+  return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+function fmtTimeHHMM(t){
+  if(!t)return'';
+  const[h,m]=t.split(':');
+  const hh=parseInt(h);
+  return (hh%12||12)+':'+(m||'00')+' '+(hh>=12?'PM':'AM');
+}
+function repeatLabel(r){
+  return{daily:'Every day',weekdays:'Weekdays',weekends:'Weekends',mwf:'Mon/Wed/Fri',weekly:'Weekly'}[r]||r;
+}
+function getDailyVerse(){
+  const idx=new Date().getDate()%DAILY_VERSES.length;
+  return DAILY_VERSES[idx];
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){return h(s||'')}
+function catColor(catId){return(NOTE_CATS.find(c=>c.id===catId)||{color:'#9B9AAF'}).color}
+function catEmoji(catId){return(NOTE_CATS.find(c=>c.id===catId)||{emoji:'📝'}).emoji}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function switchScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelector(`.nav-item[data-screen="${name}"]`).classList.add('active');
+  currentScreen=name;
+  renderScreen(name);
+}
+
+function renderScreen(name){
+  if(name==='home')renderHome();
+  else if(name==='checkin')renderCheckin();
+  else if(name==='bible')renderBible();
+  else if(name==='notes')renderNotes();
+  else if(name==='prayer')renderPrayer();
+  else if(name==='goals')renderGoals();
+  else if(name==='more')renderMore();
+}
+
+// ============================================================
+// HOME
+// ============================================================
+function renderHome(){
+  const now=new Date();
+  const h2=now.getHours();
+  const greet=h2<12?'Good morning.':h2<17?'Good afternoon.':'Good evening.';
+  document.getElementById('home-greeting').textContent=greet;
+  document.getElementById('home-date').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+  const checkins=DB.get('checkins',[]);
+  const notes=DB.get('notes',[]);
+  const prayers=DB.get('prayers',[]);
+  const goals=DB.get('goals',[]);
+
+  // Streak calc
+  const streak=calcStreak(checkins);
+  const verse=getDailyVerse();
+
+  // Activity feed (combine all, sort by date, take 8)
+  const activity=[];
+  checkins.forEach(c=>activity.push({ts:c.ts,type:'Check-In',title:'Daily check-in — '+c.moodLabel,emoji:'🎬'}));
+  notes.forEach(n=>activity.push({ts:n.ts,type:'Note',title:n.title||'Untitled note',emoji:catEmoji(n.category)}));
+  prayers.forEach(p=>activity.push({ts:p.ts,type:p.status==='answered'?'Prayer Answered':'Prayer',title:p.title,emoji:p.status==='answered'?'🙌':'🙏'}));
+  goals.filter(g=>g.progress>0).forEach(g=>activity.push({ts:g.updated||g.ts,type:'Goal',title:g.title+' — '+g.progress+'%',emoji:CAT_EMOJIS[g.category]||'🎯'}));
+  activity.sort((a,b)=>b.ts-a.ts);
+  const recent=activity.slice(0,8);
+
+  const answered=prayers.filter(p=>p.status==='answered').length;
+
+  let html=`
+    <div class="verse-banner">
+      <div class="verse-banner-label">✦ Daily Verse</div>
+      <div class="verse-banner-text">"${esc(verse.text)}"</div>
+      <div class="verse-banner-ref">${esc(verse.ref)} · KJV</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-n" style="color:var(--accent2)">${streak}</div><div class="stat-l">day streak</div></div>
+      <div class="stat-card"><div class="stat-n" style="color:var(--gold2)">${checkins.length}</div><div class="stat-l">check-ins</div></div>
+      <div class="stat-card"><div class="stat-n" style="color:var(--green2)">${answered}</div><div class="stat-l">prayers answered</div></div>
+      <div class="stat-card"><div class="stat-n">${notes.length}</div><div class="stat-l">notes</div></div>
+    </div>`;
+
+  // Streak dots (last 7 days)
+  const dots=buildStreakDots(checkins);
+  html+=`<div class="card" style="margin-bottom:10px">
+    <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px">Last 7 days</div>
+    <div class="streak-bar">${dots}</div>
+  </div>`;
+
+  if(recent.length===0){
+    html+=`<div class="sec">Activity</div><div class="empty"><div class="empty-icon">🌱</div><div class="empty-title">Your journey starts here</div><div class="empty-sub">Record your first check-in to begin tracking your growth.</div></div>`;
+  } else {
+    html+=`<div class="sec">Recent Activity</div><div class="card">`;
+    recent.forEach(a=>{
+      html+=`<div class="activity-item">
+        <div class="act-dot">${a.emoji}</div>
+        <div><div class="act-title">${esc(a.title)}</div><div class="act-sub">${fmtDateShort(a.ts)} · ${fmtTime(a.ts)}</div></div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  document.getElementById('home-scroll').innerHTML=html;
+}
+
+function calcStreak(checkins){
+  if(!checkins.length)return 0;
+  const dates=new Set(checkins.map(c=>new Date(c.ts).toDateString()));
+  let streak=0,d=new Date();
+  while(dates.has(d.toDateString())){streak++;d.setDate(d.getDate()-1);}
+  return streak;
+}
+
+function buildStreakDots(checkins){
+  const days=['S','M','T','W','T','F','S'];
+  const dates=new Set(checkins.map(c=>new Date(c.ts).toDateString()));
+  let html='';
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const done=dates.has(d.toDateString());
+    const today=i===0;
+    const cls=today?(done?'s-dot s-done':'s-dot s-today'):(done?'s-dot s-done':'s-dot s-miss');
+    html+=`<div class="${cls}">${days[d.getDay()]}</div>`;
+  }
+  return html;
+}
+
+// ============================================================
+// CHECK-IN
+// ============================================================
+function renderCheckin(){
+  const checkins=DB.get('checkins',[]);
+  const todayStr=new Date().toDateString();
+  const doneToday=checkins.some(c=>new Date(c.ts).toDateString()===todayStr);
+
+  let html='';
+  if(!doneToday){
+    html+=`<div class="record-hero">
+      <div class="record-ring">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      </div>
+      <div class="record-title">Record Today's Check-In</div>
+      <div class="record-sub">Capture where you are right now — your thoughts, your spirit, your progress.</div>
+      <button class="record-btn" onclick="openSheet('checkin-sheet')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        Start Check-In
+      </button>
+    </div>`;
+  } else {
+    html+=`<div class="card" style="text-align:center;padding:20px;margin-bottom:14px">
+      <div style="font-size:32px;margin-bottom:8px">✅</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:4px">Done for today</div>
+      <div style="font-size:13px;color:var(--text2)">Check-in recorded. Come back tomorrow.</div>
+    </div>`;
+  }
+
+  // Filter bar
+  html+=`<div class="sec">Look Back</div>
+  <div class="lookback-pills">
+    <button class="pill ${checkinFilter==='all'?'pill-a':'pill-n'}" onclick="setCheckinFilter(this,'all')">All</button>
+    <button class="pill ${checkinFilter==='7d'?'pill-a':'pill-n'}" onclick="setCheckinFilter(this,'7d')">7 days ago</button>
+    <button class="pill ${checkinFilter==='30d'?'pill-a':'pill-n'}" onclick="setCheckinFilter(this,'30d')">30 days ago</button>
+    <button class="pill ${checkinFilter==='90d'?'pill-a':'pill-n'}" onclick="setCheckinFilter(this,'90d')">90 days ago</button>
+    <button class="pill ${checkinFilter==='1y'?'pill-a':'pill-n'}" onclick="setCheckinFilter(this,'1y')">1 year ago</button>
+  </div>`;
+
+  let filtered=checkins.slice().sort((a,b)=>b.ts-a.ts);
+  if(checkinFilter!=='all'){
+    const now=Date.now();
+    const ranges={'7d':7,'30d':30,'90d':90,'1y':365};
+    const days=ranges[checkinFilter];
+    const target=now-(days*24*60*60*1000);
+    // Find closest entry to the target
+    if(filtered.length){
+      filtered=filtered.filter(c=>Math.abs(c.ts-target)<(3*24*60*60*1000));
+    }
+  }
+
+  if(filtered.length===0){
+    html+=`<div class="empty"><div class="empty-icon">📹</div><div class="empty-title">No check-ins yet${checkinFilter!=='all'?' for this period':''}</div><div class="empty-sub">Your recorded check-ins will appear here.</div></div>`;
+  } else {
+    filtered.forEach(c=>{
+      html+=`<div class="video-entry" onclick="openCheckinDetail('${c.id}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="video-entry-mood">${c.moodEmoji||'🙂'}</div>
+          <div style="text-align:right"><div class="video-entry-date">${fmtDate(c.ts)}</div><div class="video-entry-dur">${fmtTime(c.ts)}</div></div>
+        </div>
+        ${c.grateful?`<div class="video-entry-preview">Grateful for: ${esc(c.grateful)}</div>`:''}
+      </div>`;
+    });
+  }
+
+  document.getElementById('checkin-scroll').innerHTML=html;
+}
+
+function setCheckinFilter(btn,f){
+  checkinFilter=f;renderCheckin();
+}
+
+function openSheet(id){
+  document.getElementById(id).classList.add('open');
+  // Reset checkin fields
+  if(id==='checkin-sheet'){
+    document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('sel'));
+    document.querySelectorAll('.mood-btn')[2].classList.add('sel');
+    currentMoodEmoji='🙂';currentMoodLabel='Good';
+    ['ci-grateful','ci-goal','ci-challenge','ci-verse'].forEach(f=>document.getElementById(f).value='');
+  }
+  if(id==='prayer-sheet'){
+    document.getElementById('prayer-title-f').value='';
+    document.getElementById('prayer-body-f').value='';
+    currentPrayerStatus='active';
+    setPrayerStatus('active');
+    document.getElementById('prayer-sheet-title').textContent='New Prayer';
+    currentPrayerId=null;
+  }
+  if(id==='goal-sheet'){
+    document.getElementById('goal-title-f').value='';
+    document.getElementById('goal-notes-f').value='';
+    document.getElementById('goal-pct-f').value=0;
+    document.getElementById('goal-pct-disp').textContent='0%';
+    document.getElementById('goal-start-f').value=new Date().toISOString().split('T')[0];
+    document.getElementById('goal-target-f').value='';
+    currentGoalCat='Faith';
+    document.querySelectorAll('#goal-cat-pills .pill').forEach(p=>{p.className='pill pill-n'});
+    document.querySelector('#goal-cat-pills .pill').className='pill pill-a';
+  }
+}
+function closeSheet(id){document.getElementById(id).classList.remove('open')}
+
+function selectMood(btn,emoji,label){
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  currentMoodEmoji=emoji;currentMoodLabel=label;
+}
+
+function saveCheckin(){
+  const c={
+    id:uid(),ts:Date.now(),
+    moodEmoji:currentMoodEmoji,moodLabel:currentMoodLabel,
+    grateful:document.getElementById('ci-grateful').value.trim(),
+    goal:document.getElementById('ci-goal').value.trim(),
+    challenge:document.getElementById('ci-challenge').value.trim(),
+    verse:document.getElementById('ci-verse').value.trim()
+  };
+  const arr=DB.get('checkins',[]);
+  arr.unshift(c);DB.set('checkins',arr);
+  closeSheet('checkin-sheet');
+  showToast('Check-in saved ✓');
+  renderCheckin();
+  if(currentScreen==='home')renderHome();
+}
+
+function openCheckinDetail(id){
+  const arr=DB.get('checkins',[]);
+  const c=arr.find(x=>x.id===id);
+  if(!c)return;
+  currentCheckinId=id;
+  document.getElementById('checkin-detail-title').textContent=fmtDate(c.ts);
+  let html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <div style="font-size:48px">${c.moodEmoji||'🙂'}</div>
+    <div><div style="font-size:20px;font-weight:700">${c.moodLabel||'Good'}</div><div style="font-size:13px;color:var(--text3)">${fmtTime(c.ts)}</div></div>
+  </div>`;
+  const qs=[['What am I grateful for?','grateful'],['Biggest goal for the day','goal'],['What challenged me yesterday?','challenge'],['Bible verse that stood out','verse']];
+  qs.forEach(([q,k])=>{
+    if(c[k]){html+=`<div class="reflect-section"><div class="reflect-q-label">${q}</div><div class="reflect-q-answer">${esc(c[k])}</div></div>`;}
+  });
+  document.getElementById('checkin-detail-content').innerHTML=html;
+  document.getElementById('checkin-detail-view').classList.add('open');
+}
+function closeCheckinDetail(){document.getElementById('checkin-detail-view').classList.remove('open')}
+function deleteCurrentCheckin(){
+  if(!confirm('Delete this check-in?'))return;
+  let arr=DB.get('checkins',[]);
+  arr=arr.filter(x=>x.id!==currentCheckinId);
+  DB.set('checkins',arr);
+  closeCheckinDetail();renderCheckin();
+  showToast('Check-in deleted');
+}
+
+// ============================================================
+// BIBLE
+// ============================================================
+function renderBible(){
+  const bookmarks=DB.get('bibleBookmarks',[]);
+  const highlights=DB.get('bibleHighlights',[]);
+  const verse=getDailyVerse();
+  const readingPlan=DB.get('readingPlan',null);
+  const plans=DB.get('readingPlans',[
+    {id:'nt90',name:'New Testament in 90 Days',books:BIBLE.books.filter(b=>b.testament==='NT').map(b=>b.name),current:0},
+    {id:'psalms30',name:'Psalms in 30 Days',books:['Psalms'],current:0},
+    {id:'full365',name:'Bible in a Year',books:BIBLE.books.map(b=>b.name),current:0}
+  ]);
+
+  let html=`<div class="verse-banner" style="margin-bottom:14px">
+    <div class="verse-banner-label">✦ Today's Verse</div>
+    <div class="verse-banner-text">"${esc(verse.text)}"</div>
+    <div class="verse-banner-ref">${esc(verse.ref)}</div>
+  </div>`;
+
+  // Reading plan card
+  const activePlan=plans.find(p=>p.active);
+  if(activePlan){
+    const total=activePlan.books.length;
+    const done=activePlan.current||0;
+    const pct=Math.round((done/total)*100);
+    html+=`<div class="plan-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div><div style="font-size:15px;font-weight:600">${esc(activePlan.name)}</div><div style="font-size:12px;color:var(--text3)">Book ${done+1} of ${total}</div></div>
+        <span class="pill pill-gold">${pct}%</span>
+      </div>
+      <div class="prog"><div class="prog-fill" style="width:${pct}%;background:var(--gold)"></div></div>
+      <button onclick="continueReadingPlan()" style="margin-top:12px;width:100%;padding:10px;background:var(--accent-bg);color:var(--accent2);border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Continue Reading →</button>
+    </div>`;
+  } else {
+    html+=`<button onclick="openSheet('plan-sheet')" style="width:100%;padding:14px;background:var(--bg3);border:0.5px dashed var(--border2);border-radius:var(--r);font-size:14px;font-weight:600;color:var(--text2);cursor:pointer;margin-bottom:10px;font-family:inherit">📋 Start a Reading Plan</button>`;
+    renderPlanSheet(plans);
+  }
+
+  // Filter tabs
+  html+=`<div class="sec">Browse</div>
+  <div class="cat-pills">
+    <button class="pill ${bibleFilter==='all'?'pill-a':'pill-n'}" onclick="setBibleFilter(this,'all')">All 66 Books</button>
+    <button class="pill ${bibleFilter==='OT'?'pill-a':'pill-n'}" onclick="setBibleFilter(this,'OT')">Old Testament</button>
+    <button class="pill ${bibleFilter==='NT'?'pill-a':'pill-n'}" onclick="setBibleFilter(this,'NT')">New Testament</button>
+    <button class="pill ${bibleFilter==='BM'?'pill-a':'pill-n'}" onclick="setBibleFilter(this,'BM')">Bookmarks</button>
+    <button class="pill ${bibleFilter==='HL'?'pill-a':'pill-n'}" onclick="setBibleFilter(this,'HL')">Highlights</button>
+  </div>
+  <div id="bible-book-list">`;
+
+  if(bibleFilter==='BM'){
+    if(!bookmarks.length){html+=`<div class="empty"><div class="empty-icon">🔖</div><div class="empty-title">No bookmarks yet</div><div class="empty-sub">Bookmark verses while reading to find them here.</div></div>`;}
+    else{
+      bookmarks.forEach(bm=>{
+        html+=`<div class="verse-item" onclick="openBibleReader('${esc(bm.book)}',${bm.chapter})">
+          <div class="verse-ref">${esc(bm.book)} ${bm.chapter}:${bm.verse}</div>
+          <div class="verse-text">${esc(bm.text)}</div>
+        </div>`;
+      });
+    }
+  } else if(bibleFilter==='HL'){
+    if(!highlights.length){html+=`<div class="empty"><div class="empty-icon">✨</div><div class="empty-title">No highlights yet</div><div class="empty-sub">Highlight verses while reading to collect them here.</div></div>`;}
+    else{
+      highlights.forEach(hl=>{
+        html+=`<div class="verse-item" style="border-left:3px solid var(--gold);padding-left:12px" onclick="openBibleReader('${esc(hl.book)}',${hl.chapter})">
+          <div class="verse-ref" style="color:var(--gold2)">${esc(hl.book)} ${hl.chapter}:${hl.verse}</div>
+          <div class="verse-text">${esc(hl.text)}</div>
+        </div>`;
+      });
+    }
+  } else {
+    const list=bibleFilter==='all'?BIBLE.books:BIBLE.books.filter(b=>b.testament===bibleFilter);
+    list.forEach(b=>{
+      html+=`<div class="book-item" onclick="openBibleReader('${esc(b.name)}',1)">
+        <span class="book-name">${esc(b.name)}</span>
+        <span class="book-ch">${b.chapters} ch ›</span>
+      </div>`;
+    });
+  }
+
+  html+=`</div>`;
+  document.getElementById('bible-scroll').innerHTML=html;
+
+  // Render plan sheet
+  renderPlanSheet(plans);
+}
+
+function renderPlanSheet(plans){
+  const pl=document.getElementById('plan-list');
+  if(!pl)return;
+  let html='';
+  plans.forEach(p=>{
+    const isActive=p.active;
+    html+=`<div class="card" style="margin-bottom:10px">
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px">${esc(p.name)}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${p.books.length} ${p.books.length===1?'book':'books'}</div>
+      <button onclick="activatePlan('${p.id}')" style="padding:9px 18px;background:${isActive?'var(--green-bg)':'var(--accent-bg)'};color:${isActive?'var(--green2)':'var(--accent2)'};border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${isActive?'Active ✓':'Start Plan'}</button>
+    </div>`;
+  });
+  pl.innerHTML=html;
+}
+
+function activatePlan(planId){
+  let plans=DB.get('readingPlans',[]);
+  plans.forEach(p=>{p.active=p.id===planId});
+  DB.set('readingPlans',plans);
+  closeSheet('plan-sheet');
+  renderBible();
+  showToast('Reading plan started ✓');
+}
+
+function continueReadingPlan(){
+  const plans=DB.get('readingPlans',[]);
+  const p=plans.find(x=>x.active);
+  if(!p)return;
+  const bookName=p.books[p.current]||p.books[0];
+  openBibleReader(bookName,1);
+}
+
+function setBibleFilter(btn,f){bibleFilter=f;renderBible();}
+
+function openBibleReader(bookName,chapter){
+  currentBibleBook=bookName;
+  const book=BIBLE.books.find(b=>b.name===bookName)||{chapters:1,name:bookName};
+  document.getElementById('bible-reader-title').textContent=bookName;
+
+  // Chapter select
+  const sel=document.getElementById('chapter-select');
+  sel.innerHTML='';
+  for(let i=1;i<=book.chapters;i++){
+    const opt=document.createElement('option');
+    opt.value=i;opt.textContent='Ch '+i;
+    if(i===chapter)opt.selected=true;
+    sel.appendChild(opt);
+  }
+
+  loadChapter(chapter);
+  document.getElementById('bible-reader-view').classList.add('open');
+}
+
+function loadChapter(chapter){
+  chapter=parseInt(chapter);
+  const book=currentBibleBook;
+  const key=book+':'+chapter;
+  const verses=BIBLE.chapters[key];
+  const bookmarks=DB.get('bibleBookmarks',[]);
+  const highlights=DB.get('bibleHighlights',[]);
+
+  // Update progress
+  const readLog=DB.get('bibleReadLog',[]);
+  if(!readLog.includes(key)){readLog.push(key);DB.set('bibleReadLog',readLog);}
+
+  let html='';
+  if(verses&&verses.length){
+    verses.forEach((v,i)=>{
+      const vNum=i+1;
+      const isBookmarked=bookmarks.some(b=>b.book===book&&b.chapter===chapter&&b.verse===vNum);
+      const isHighlighted=highlights.some(h=>h.book===book&&h.chapter===chapter&&h.verse===vNum);
+      html+=`<div class="verse-item" style="${isHighlighted?'border-left:3px solid var(--gold);padding-left:12px':''}">
+        <div class="verse-ref" style="${isHighlighted?'color:var(--gold2)':''}">Verse ${vNum}</div>
+        <div class="verse-text">${esc(v)}</div>
+        <div class="verse-actions">
+          <button class="verse-act-btn ${isBookmarked?'active':''}" onclick="toggleBookmark('${esc(book)}',${chapter},${vNum},\`${esc(v)}\`)">🔖 ${isBookmarked?'Saved':'Bookmark'}</button>
+          <button class="verse-act-btn ${isHighlighted?'active':''}" onclick="toggleHighlight('${esc(book)}',${chapter},${vNum},\`${esc(v)}\`)">✨ ${isHighlighted?'Highlighted':'Highlight'}</button>
+        </div>
+      </div>`;
+    });
+  } else {
+    html=`<div style="padding:30px 0;text-align:center;color:var(--text3)">
+      <div style="font-size:32px;margin-bottom:12px">📖</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:6px">${esc(book)} ${chapter}</div>
+      <div style="font-size:14px">Full KJV text for this chapter</div>
+      <div style="font-size:13px;margin-top:8px">Chapters with full text: Psalms 23, 91 · Proverbs 3 · Genesis 1 · John 3 · Romans 8 · Philippians 4 · Matthew 5 · Isaiah 40 · Jeremiah 29 · James 1</div>
+    </div>`;
+  }
+
+  // Update plan progress
+  const plans=DB.get('readingPlans',[]);
+  const activePlan=plans.find(p=>p.active);
+  if(activePlan&&activePlan.books.includes(book)){
+    const idx=activePlan.books.indexOf(book);
+    if(idx>=activePlan.current){activePlan.current=idx+1;DB.set('readingPlans',plans);}
+  }
+
+  document.getElementById('bible-reader-content').innerHTML=html;
+  document.getElementById('bible-reader-progress').textContent=`${esc(book)} · Chapter ${chapter}`;
+}
+
+function toggleBookmark(book,chapter,verse,text){
+  let arr=DB.get('bibleBookmarks',[]);
+  const idx=arr.findIndex(b=>b.book===book&&b.chapter===chapter&&b.verse===verse);
+  if(idx>=0){arr.splice(idx,1);showToast('Bookmark removed');}
+  else{arr.unshift({book,chapter,verse,text,ts:Date.now()});showToast('Bookmarked ✓');}
+  DB.set('bibleBookmarks',arr);
+  loadChapter(chapter);
+}
+
+function toggleHighlight(book,chapter,verse,text){
+  let arr=DB.get('bibleHighlights',[]);
+  const idx=arr.findIndex(h=>h.book===book&&h.chapter===chapter&&h.verse===verse);
+  if(idx>=0){arr.splice(idx,1);showToast('Highlight removed');}
+  else{arr.unshift({book,chapter,verse,text,ts:Date.now()});showToast('Highlighted ✓');}
+  DB.set('bibleHighlights',arr);
+  loadChapter(chapter);
+}
+
+function closeBibleReader(){document.getElementById('bible-reader-view').classList.remove('open')}
+
+// ============================================================
+// NOTES
+// ============================================================
+function renderNotes(){
+  const notes=DB.get('notes',[]);
+  document.getElementById('notes-sub').textContent=notes.length+' '+(notes.length===1?'entry':'entries');
+
+  let filtered=notes.slice().sort((a,b)=>{
+    if(a.pinned&&!b.pinned)return -1;
+    if(!a.pinned&&b.pinned)return 1;
+    return b.ts-a.ts;
+  });
+  if(noteFilter!=='all')filtered=filtered.filter(n=>n.category===noteFilter);
+
+  let html=`<div class="cat-pills">
+    <button class="pill ${noteFilter==='all'?'pill-a':'pill-n'}" onclick="setNoteFilter('all')">All</button>`;
+  NOTE_CATS.forEach(c=>{
+    html+=`<button class="pill ${noteFilter===c.id?'pill-a':'pill-n'}" onclick="setNoteFilter('${c.id}')">${c.emoji} ${c.id}</button>`;
+  });
+  html+=`</div>`;
+
+  if(filtered.length===0){
+    html+=`<div class="empty"><div class="empty-icon">📝</div><div class="empty-title">No notes${noteFilter!=='all'?' in this category':' yet'}</div><div class="empty-sub">Tap + to write your first note.</div></div>`;
+  } else {
+    filtered.forEach(n=>{
+      html+=`<div class="note-item" onclick="openNoteEditor('${n.id}')">
+        ${n.pinned?'<div class="pin-icon" style="position:absolute;top:14px;right:14px">📌</div>':''}
+        <div class="note-cat-badge" style="color:${catColor(n.category)}">${catEmoji(n.category)} ${esc(n.category)}</div>
+        <div class="note-title">${esc(n.title||'Untitled')}</div>
+        ${n.body?`<div class="note-preview">${esc(n.body)}</div>`:''}
+        <div class="note-date">${fmtDate(n.ts)}</div>
+      </div>`;
+    });
+  }
+  document.getElementById('notes-scroll').innerHTML=html;
+}
+
+function setNoteFilter(f){noteFilter=f;renderNotes();}
+
+function openNoteEditor(id){
+  currentNoteId=id;
+  const note=id?DB.get('notes',[]).find(n=>n.id===id):null;
+  notePinned=note?!!note.pinned:false;
+  noteCategory=note?note.category:'Personal';
+
+  document.getElementById('note-editor-mode').textContent=id?'Edit note':'New note';
+  document.getElementById('note-editor-title').value=note?note.title||'':'';
+  document.getElementById('note-editor-body').value=note?note.body||'':'';
+  document.getElementById('note-delete-btn').style.display=id?'block':'none';
+  document.getElementById('note-pin-btn').style.background=notePinned?'var(--accent-bg)':'';
+  document.getElementById('note-pin-btn').style.color=notePinned?'var(--accent2)':'';
+
+  // Render category pills in editor
+  let pillsHtml='';
+  NOTE_CATS.forEach(c=>{
+    pillsHtml+=`<button class="pill ${c.id===noteCategory?'pill-a':'pill-n'}" onclick="setNoteEditorCat(this,'${c.id}')">${c.emoji} ${c.id}</button>`;
+  });
+  document.getElementById('note-cat-editor-pills').innerHTML=pillsHtml;
+  document.getElementById('note-editor-view').classList.add('open');
+  setTimeout(()=>document.getElementById(id?'note-editor-body':'note-editor-title').focus(),300);
+}
+
+function setNoteEditorCat(btn,cat){
+  noteCategory=cat;
+  document.querySelectorAll('#note-cat-editor-pills .pill').forEach(p=>p.className='pill pill-n');
+  btn.className='pill pill-a';
+}
+
+function toggleNotePin(){
+  notePinned=!notePinned;
+  const btn=document.getElementById('note-pin-btn');
+  btn.style.background=notePinned?'var(--accent-bg)':'';
+  btn.style.color=notePinned?'var(--accent2)':'';
+}
+
+function saveNoteEditor(){
+  const title=document.getElementById('note-editor-title').value.trim();
+  const body=document.getElementById('note-editor-body').value.trim();
+  if(!title&&!body){showToast('Write something first');return;}
+  let notes=DB.get('notes',[]);
+  if(currentNoteId){
+    const idx=notes.findIndex(n=>n.id===currentNoteId);
+    if(idx>=0){notes[idx]={...notes[idx],title,body,category:noteCategory,pinned:notePinned,updated:Date.now()};}
+  } else {
+    notes.unshift({id:uid(),ts:Date.now(),title,body,category:noteCategory,pinned:notePinned});
+  }
+  DB.set('notes',notes);
+  closeNoteEditor();
+  renderNotes();
+  showToast('Note saved ✓');
+}
+
+function closeNoteEditor(){document.getElementById('note-editor-view').classList.remove('open')}
+
+function deleteCurrentNote(){
+  if(!confirm('Delete this note?'))return;
+  let notes=DB.get('notes',[]);
+  notes=notes.filter(n=>n.id!==currentNoteId);
+  DB.set('notes',notes);
+  closeNoteEditor();renderNotes();
+  showToast('Note deleted');
+}
+
+// ============================================================
+// PRAYER
+// ============================================================
+function renderPrayer(){
+  const prayers=DB.get('prayers',[]);
+  const active=prayers.filter(p=>p.status==='active');
+  const waiting=prayers.filter(p=>p.status==='waiting');
+  const answered=prayers.filter(p=>p.status==='answered');
+
+  let filtered=prayers.filter(p=>p.status===(prayerFilter==='answered'?'answered':prayerFilter==='waiting'?'waiting':'active'));
+  if(prayerFilter==='all')filtered=prayers;
+
+  let html=`<div class="prayer-stats">
+    <div class="p-stat"><div class="p-stat-n" style="color:var(--accent2)">${active.length}</div><div class="p-stat-l">Active</div></div>
+    <div class="p-stat"><div class="p-stat-n" style="color:var(--gold2)">${waiting.length}</div><div class="p-stat-l">Waiting</div></div>
+    <div class="p-stat"><div class="p-stat-n" style="color:var(--green2)">${answered.length}</div><div class="p-stat-l">Answered</div></div>
+  </div>
+  <div style="display:flex;gap:7px;margin-bottom:14px">
+    <button class="pill ${prayerFilter==='active'?'pill-a':'pill-n'}" onclick="setPrayerFilter('active')">Active</button>
+    <button class="pill ${prayerFilter==='waiting'?'pill-a':'pill-n'}" onclick="setPrayerFilter('waiting')">Waiting</button>
+    <button class="pill ${prayerFilter==='answered'?'pill-a':'pill-n'}" onclick="setPrayerFilter('answered')">Answered ✓</button>
+    <button class="pill ${prayerFilter==='all'?'pill-a':'pill-n'}" onclick="setPrayerFilter('all')">All</button>
+  </div>`;
+
+  filtered=filtered.slice().sort((a,b)=>b.ts-a.ts);
+
+  if(filtered.length===0){
+    html+=`<div class="empty"><div class="empty-icon">🙏</div><div class="empty-title">No ${prayerFilter!=='all'?prayerFilter+' ':''} prayers yet</div><div class="empty-sub">Tap + to write your first prayer.</div></div>`;
+  } else {
+    filtered.forEach(p=>{
+      const pillCls=p.status==='answered'?'pill-green':p.status==='waiting'?'pill-gold':'pill-a';
+      html+=`<div class="prayer-item" onclick="openPrayerDetail('${p.id}')">
+        <div class="prayer-title">${esc(p.title)}</div>
+        <div class="prayer-date">${fmtDate(p.ts)}</div>
+        ${p.body?`<div class="prayer-preview">${esc(p.body)}</div>`:''}
+        <div class="prayer-footer">
+          <span class="pill ${pillCls}">${p.status.charAt(0).toUpperCase()+p.status.slice(1)}</span>
+          ${p.answeredNote?`<span style="font-size:12px;color:var(--green2)">🙌 Answered</span>`:''}
+        </div>
+      </div>`;
+    });
+  }
+
+  document.getElementById('prayer-scroll').innerHTML=html;
+}
+
+function setPrayerFilter(f){prayerFilter=f;renderPrayer();}
+
+function setPrayerStatus(s){
+  currentPrayerStatus=s;
+  ['active','waiting','answered'].forEach(x=>{
+    const el=document.getElementById('ps-'+x);
+    if(el)el.className=x===s?'pill pill-a':'pill pill-n';
+  });
+}
+
+function savePrayer(){
+  const title=document.getElementById('prayer-title-f').value.trim();
+  const body=document.getElementById('prayer-body-f').value.trim();
+  if(!title){showToast('Add a title');return;}
+  const p={id:uid(),ts:Date.now(),title,body,status:currentPrayerStatus};
+  const arr=DB.get('prayers',[]);
+  arr.unshift(p);DB.set('prayers',arr);
+  closeSheet('prayer-sheet');
+  renderPrayer();
+  showToast('Prayer saved ✓');
+}
+
+function openPrayerDetail(id){
+  const arr=DB.get('prayers',[]);
+  const p=arr.find(x=>x.id===id);
+  if(!p)return;
+  currentPrayerId=id;
+  document.getElementById('prayer-detail-title').textContent=p.title;
+  const pillCls=p.status==='answered'?'pill-green':p.status==='waiting'?'pill-gold':'pill-a';
+  let html=`
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+      <span class="pill ${pillCls}">${p.status.charAt(0).toUpperCase()+p.status.slice(1)}</span>
+      <span style="font-size:12px;color:var(--text3)">${fmtDate(p.ts)}</span>
+    </div>
+    ${p.body?`<div style="font-size:16px;line-height:1.7;color:var(--text);margin-bottom:24px">${esc(p.body)}</div>`:''}
+    <div class="sec">Update Status</div>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <button class="pill ${p.status==='active'?'pill-a':'pill-n'}" onclick="updatePrayerStatus('${id}','active')">Active</button>
+      <button class="pill ${p.status==='waiting'?'pill-gold':'pill-n'}" onclick="updatePrayerStatus('${id}','waiting')">Waiting</button>
+      <button class="pill ${p.status==='answered'?'pill-green':'pill-n'}" onclick="updatePrayerStatus('${id}','answered')">Answered ✓</button>
+    </div>
+    ${p.status==='answered'?`
+    <div class="sec">How was it answered?</div>
+    <textarea class="field" id="answered-note" placeholder="Record how God answered…" rows="4">${esc(p.answeredNote||'')}</textarea>
+    <button class="submit-btn" onclick="saveAnsweredNote('${id}')">Save Note</button>
+    `:''}`;
+  document.getElementById('prayer-detail-content').innerHTML=html;
+  document.getElementById('prayer-detail-view').classList.add('open');
+}
+
+function updatePrayerStatus(id,status){
+  let arr=DB.get('prayers',[]);
+  const idx=arr.findIndex(p=>p.id===id);
+  if(idx>=0){arr[idx].status=status;DB.set('prayers',arr);}
+  openPrayerDetail(id);renderPrayer();
+  showToast('Status updated ✓');
+}
+
+function saveAnsweredNote(id){
+  const note=document.getElementById('answered-note')?.value.trim();
+  if(!note)return;
+  let arr=DB.get('prayers',[]);
+  const idx=arr.findIndex(p=>p.id===id);
+  if(idx>=0){arr[idx].answeredNote=note;DB.set('prayers',arr);}
+  showToast('Note saved ✓');
+}
+
+function closePrayerDetail(){document.getElementById('prayer-detail-view').classList.remove('open')}
+
+function deleteCurrentPrayer(){
+  if(!confirm('Delete this prayer?'))return;
+  let arr=DB.get('prayers',[]);
+  arr=arr.filter(p=>p.id!==currentPrayerId);
+  DB.set('prayers',arr);
+  closePrayerDetail();renderPrayer();
+  showToast('Prayer deleted');
+}
+
+// ============================================================
+// GOALS
+// ============================================================
+function renderGoals(){
+  const goals=DB.get('goals',[]);
+  let filtered=goalFilter==='all'?goals:goals.filter(g=>g.category===goalFilter);
+  filtered=filtered.slice().sort((a,b)=>b.ts-a.ts);
+
+  const active=goals.filter(g=>g.progress<100).length;
+  document.getElementById('goals-sub').textContent=active+' active';
+
+  let html=`<div class="goal-cats">
+    <button class="pill ${goalFilter==='all'?'pill-a':'pill-n'}" onclick="setGoalFilter('all')">All</button>`;
+  Object.entries(CAT_EMOJIS).forEach(([cat,em])=>{
+    html+=`<button class="pill ${goalFilter===cat?'pill-a':'pill-n'}" onclick="setGoalFilter('${cat}')">${em} ${cat}</button>`;
+  });
+  html+=`</div>`;
+
+  if(filtered.length===0){
+    html+=`<div class="empty"><div class="empty-icon">🎯</div><div class="empty-title">No goals${goalFilter!=='all'?' in this category':' yet'}</div><div class="empty-sub">Tap + to set your first goal.</div></div>`;
+  } else {
+    filtered.forEach(g=>{
+      const pct=g.progress||0;
+      const barColor=pct>=75?'var(--green)':pct>=40?'var(--accent)':'var(--gold)';
+      const emoji=CAT_EMOJIS[g.category]||'🎯';
+      html+=`<div class="goal-item" onclick="openGoalDetail('${g.id}')">
+        <div class="goal-header">
+          <div class="goal-emoji" style="background:var(--bg4)">${emoji}</div>
+          <div class="goal-info"><div class="goal-title">${esc(g.title)}</div><div class="goal-cat">${esc(g.category)}</div></div>
+          <div class="goal-pct">${pct}%</div>
+        </div>
+        <div class="prog"><div class="prog-fill" style="width:${pct}%;background:${barColor}"></div></div>
+        <div class="goal-footer">
+          <span class="goal-dates">${g.targetDate?'Target: '+g.targetDate:''}</span>
+          ${pct>=100?'<span class="pill pill-green" style="font-size:11px;padding:3px 10px">Complete ✓</span>':''}
+        </div>
+      </div>`;
+    });
+  }
+
+  document.getElementById('goals-scroll').innerHTML=html;
+}
+
+function setGoalFilter(f){goalFilter=f;renderGoals();}
+
+function setGoalCat(btn){
+  currentGoalCat=btn.dataset.cat;
+  document.querySelectorAll('#goal-cat-pills .pill').forEach(p=>p.className='pill pill-n');
+  btn.className='pill pill-a';
+}
+
+function saveGoal(){
+  const title=document.getElementById('goal-title-f').value.trim();
+  if(!title){showToast('Add a goal title');return;}
+  const g={
+    id:uid(),ts:Date.now(),title,
+    category:currentGoalCat,
+    startDate:document.getElementById('goal-start-f').value,
+    targetDate:document.getElementById('goal-target-f').value,
+    progress:parseInt(document.getElementById('goal-pct-f').value)||0,
+    notes:document.getElementById('goal-notes-f').value.trim(),
+    milestones:[]
+  };
+  const arr=DB.get('goals',[]);
+  arr.unshift(g);DB.set('goals',arr);
+  closeSheet('goal-sheet');renderGoals();
+  showToast('Goal added ✓');
+}
+
+function openGoalDetail(id){
+  const arr=DB.get('goals',[]);
+  const g=arr.find(x=>x.id===id);
+  if(!g)return;
+  currentGoalId=id;
+  document.getElementById('goal-detail-title').textContent=g.title;
+
+  const emoji=CAT_EMOJIS[g.category]||'🎯';
+  const barColor=g.progress>=75?'var(--green)':g.progress>=40?'var(--accent)':'var(--gold)';
+
+  let html=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="font-size:40px">${emoji}</div>
+      <div><div style="font-size:22px;font-weight:700;letter-spacing:-0.4px">${esc(g.title)}</div>
+      <div style="font-size:13px;color:var(--text3)">${esc(g.category)}</div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:13px;color:var(--text2)">Progress</span>
+        <span style="font-size:16px;font-weight:700;color:var(--accent2)" id="goal-detail-pct">${g.progress}%</span>
+      </div>
+      <div class="prog" style="height:8px;margin-bottom:12px"><div class="prog-fill" id="goal-detail-bar" style="width:${g.progress}%;background:${barColor}"></div></div>
+      <input type="range" min="0" max="100" step="5" value="${g.progress}" id="goal-pct-slider" oninput="updateGoalSlider(this.value)" style="width:100%">
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">Start date</div><div style="font-size:14px;font-weight:500">${g.startDate||'—'}</div></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">Target date</div><div style="font-size:14px;font-weight:500">${g.targetDate||'—'}</div></div>
+      </div>
+    </div>
+    ${g.notes?`<div class="card" style="margin-bottom:14px"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Notes</div><div style="font-size:15px;line-height:1.6">${esc(g.notes)}</div></div>`:''}
+    <div class="sec">Milestones</div>`;
+
+  if(g.milestones&&g.milestones.length){
+    g.milestones.forEach((m,i)=>{
+      html+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border)">
+        <button onclick="toggleMilestone('${id}',${i})" style="width:22px;height:22px;border-radius:50%;border:1.5px solid ${m.done?'var(--green)':'var(--border2)'};background:${m.done?'var(--green-bg)':'transparent'};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:12px">${m.done?'✓':''}</button>
+        <span style="font-size:14px;${m.done?'text-decoration:line-through;color:var(--text3)':''}">${esc(m.text)}</span>
+      </div>`;
+    });
+  }
+
+  html+=`<div style="display:flex;gap:8px;margin-top:12px">
+    <input class="field" id="new-milestone-f" placeholder="Add a milestone…" style="margin:0;flex:1">
+    <button onclick="addMilestone('${id}')" style="padding:10px 16px;background:var(--accent-bg);color:var(--accent2);border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Add</button>
+  </div>
+  <button class="danger-btn" onclick="deleteCurrentGoal()" style="margin-top:20px">Delete goal</button>`;
+
+  document.getElementById('goal-detail-content').innerHTML=html;
+  document.getElementById('goal-detail-view').classList.add('open');
+}
+
+function updateGoalSlider(val){
+  document.getElementById('goal-detail-pct').textContent=val+'%';
+  const barColor=val>=75?'var(--green)':val>=40?'var(--accent)':'var(--gold)';
+  document.getElementById('goal-detail-bar').style.width=val+'%';
+  document.getElementById('goal-detail-bar').style.background=barColor;
+}
+
+function saveGoalDetailEdits(){
+  const pct=parseInt(document.getElementById('goal-pct-slider')?.value)||0;
+  let arr=DB.get('goals',[]);
+  const idx=arr.findIndex(g=>g.id===currentGoalId);
+  if(idx>=0){arr[idx].progress=pct;arr[idx].updated=Date.now();DB.set('goals',arr);}
+  closeGoalDetail();renderGoals();
+  showToast('Goal updated ✓');
+}
+
+function addMilestone(id){
+  const f=document.getElementById('new-milestone-f');
+  const text=f.value.trim();
+  if(!text)return;
+  let arr=DB.get('goals',[]);
+  const idx=arr.findIndex(g=>g.id===id);
+  if(idx>=0){
+    arr[idx].milestones=arr[idx].milestones||[];
+    arr[idx].milestones.push({text,done:false});
+    DB.set('goals',arr);
+  }
+  f.value='';
+  openGoalDetail(id);
+}
+
+function toggleMilestone(id,i){
+  let arr=DB.get('goals',[]);
+  const idx=arr.findIndex(g=>g.id===id);
+  if(idx>=0&&arr[idx].milestones[i]){
+    arr[idx].milestones[i].done=!arr[idx].milestones[i].done;
+    DB.set('goals',arr);
+  }
+  openGoalDetail(id);
+}
+
+function closeGoalDetail(){document.getElementById('goal-detail-view').classList.remove('open')}
+
+function deleteCurrentGoal(){
+  if(!confirm('Delete this goal?'))return;
+  let arr=DB.get('goals',[]);
+  arr=arr.filter(g=>g.id!==currentGoalId);
+  DB.set('goals',arr);
+  closeGoalDetail();renderGoals();
+  showToast('Goal deleted');
+}
+
+// ============================================================
+// MORE (TIMELINE + REMINDERS)
+// ============================================================
+function renderMore(){
+  const reminders=DB.get('reminders',REMINDERS_DEFAULT);
+
+  let html=`<div class="sec" style="margin-top:4px">Reminders</div>
+  <div class="card" style="margin-bottom:20px">`;
+
+  reminders.forEach(r=>{
+    html+=`<div class="remind-row">
+      <div class="remind-left">
+        <div class="remind-icon" style="background:${r.bg}">${r.emoji}</div>
+        <div>
+          <div class="remind-name">${esc(r.name)}</div>
+          <div class="remind-time-label" onclick="openReminderEdit('${r.id}')" style="cursor:pointer;color:${r.on?'var(--accent2)':'var(--text3)'}">${r.on?fmtTimeHHMM(r.time)+' · '+repeatLabel(r.repeat):'Off'}</div>
+        </div>
+      </div>
+      <button class="toggle ${r.on?'on':'off'}" onclick="toggleReminder('${r.id}')"></button>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // Timeline
+  html+=`<div class="sec">Life Timeline</div>`;
+
+  // Combine all entries
+  const checkins=DB.get('checkins',[]);
+  const notes=DB.get('notes',[]);
+  const prayers=DB.get('prayers',[]);
+  const goals=DB.get('goals',[]);
+  const highlights=DB.get('bibleHighlights',[]);
+
+  const all=[];
+  checkins.forEach(c=>all.push({ts:c.ts,type:'Check-In',title:'Daily check-in',sub:c.moodLabel+' · '+fmtTime(c.ts),emoji:'🎬'}));
+  notes.forEach(n=>all.push({ts:n.ts,type:'Note',title:n.title||'Untitled',sub:n.category,emoji:catEmoji(n.category)}));
+  prayers.forEach(p=>all.push({ts:p.ts,type:p.status==='answered'?'Answered Prayer':'Prayer',title:p.title,sub:p.status,emoji:p.status==='answered'?'🙌':'🙏'}));
+  goals.forEach(g=>all.push({ts:g.ts,type:'Goal',title:g.title,sub:g.category+' · '+g.progress+'%',emoji:CAT_EMOJIS[g.category]||'🎯'}));
+  highlights.forEach(h=>all.push({ts:h.ts,type:'Bible',title:h.book+' '+h.chapter+':'+h.verse,sub:'Highlighted verse',emoji:'✨'}));
+
+  all.sort((a,b)=>b.ts-a.ts);
+
+  if(all.length===0){
+    html+=`<div class="empty"><div class="empty-icon">🗓️</div><div class="empty-title">Your timeline is empty</div><div class="empty-sub">Every check-in, prayer, note, and goal will appear here as you build your journey.</div></div>`;
+  } else {
+    // Group by date
+    const groups={};
+    all.forEach(item=>{
+      const key=new Date(item.ts).toDateString();
+      if(!groups[key])groups[key]=[];
+      groups[key].push(item);
+    });
+    Object.entries(groups).forEach(([dateStr,items])=>{
+      const d=new Date(dateStr);
+      const label=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+      html+=`<div class="tl-group-date">${label}</div>`;
+      items.forEach(item=>{
+        html+=`<div class="tl-item">
+          <div class="tl-dot">${item.emoji}</div>
+          <div class="tl-body">
+            <div class="tl-type">${item.type}</div>
+            <div class="tl-title">${esc(item.title)}</div>
+            <div class="tl-time">${item.sub}</div>
+          </div>
+        </div>`;
+      });
+    });
+  }
+
+  document.getElementById('more-scroll').innerHTML=html;
+}
+
+function toggleReminder(id){
+  let arr=DB.get('reminders',REMINDERS_DEFAULT);
+  const r=arr.find(x=>x.id===id);
+  if(r)r.on=!r.on;
+  DB.set('reminders',arr);
+  renderMore();
+}
+
+function openReminderEdit(id){
+  currentEditingReminder=id;
+  const arr=DB.get('reminders',REMINDERS_DEFAULT);
+  const r=arr.find(x=>x.id===id);
+  if(!r)return;
+  document.getElementById('remind-sheet-title').textContent=r.name;
+  document.getElementById('remind-time-f').value=r.time||'08:00';
+  document.getElementById('remind-repeat-f').value=r.repeat||'daily';
+  openSheet('remind-sheet');
+}
+
+function saveReminder(){
+  const arr=DB.get('reminders',REMINDERS_DEFAULT);
+  const r=arr.find(x=>x.id===currentEditingReminder);
+  if(r){
+    r.time=document.getElementById('remind-time-f').value;
+    r.repeat=document.getElementById('remind-repeat-f').value;
+    r.on=true;
+    DB.set('reminders',arr);
+  }
+  closeSheet('remind-sheet');
+  renderMore();
+  showToast('Reminder saved ✓');
+}
+
+// Close modals on overlay tap
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',function(e){if(e.target===this)closeSheet(this.id)});
+});
+
+// ============================================================
+// INIT
+// ============================================================
+function init(){
+  renderHome();
+}
+init();
+</script>
+</body>
+</html>
